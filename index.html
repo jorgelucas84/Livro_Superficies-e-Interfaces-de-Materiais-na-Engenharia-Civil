@@ -3,94 +3,164 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sorteio do livro · ANPET 2026</title>
+<title>Sorteador Jackpot</title>
 <style>
-:root{--bg:#f6f4ef;--card:#fff;--tx:#1d2433;--mu:#6b7384;--ac:#0f4d3a;--onac:#fff;--bd:#e2ded5;
+:root{--bg:#fff7e6;--card:#ffffff;--ink:#2a1b00;--mute:#7a6540;--line:#e7d5a8;--gold:#f5b800;--green:#1fa85a;--reel:#1b1230;--reelink:#ffd84d;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12151c;--card:#1b202b;--tx:#eef0f5;--mu:#98a0b3;--ac:#e0a92e;--onac:#1a1a1a;--bd:#2c3342}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#150d26;--card:#21163a;--ink:#f6efe0;--mute:#b8a8d6;--line:#3a2a5e;--reel:#0b0618;--reelink:#ffd84d}}
+:root[data-theme="dark"]{--bg:#150d26;--card:#21163a;--ink:#f6efe0;--mute:#b8a8d6;--line:#3a2a5e;--reel:#0b0618;--reelink:#ffd84d}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:520px;margin:0 auto;padding:20px 16px 60px}
-.hd{text-align:center;margin-bottom:18px}.hd img{width:150px;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
-.kick{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ac);font-weight:700;margin-top:14px}
-h1{font:700 22px/1.25 Georgia,serif;margin:4px 0}
-h2{margin:0 0 8px;font-size:17px}
-.sub{color:var(--mu);margin:0;font-size:14px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:16px}
-a.btn{display:block;text-align:center;text-decoration:none;font-size:19px;font-weight:600;background:var(--ac);color:var(--onac);padding:15px;border-radius:12px;margin-top:14px}
-ul{margin:0;padding-left:20px;font-size:14px}
-.meta{color:var(--mu);font-size:13px}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{background:var(--bd);border-radius:99px;padding:3px 10px;font-size:13px}
-.fine{color:var(--mu);font-size:12px;margin:12px 0 0}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+main{max-width:760px;margin:0 auto;padding:20px 16px 40px}
+h1{text-align:center;margin:8px 0 4px;font-size:clamp(26px,6vw,40px);letter-spacing:1px}
+.sub{text-align:center;color:var(--mute);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+label{font-size:13px;color:var(--mute);display:block;margin-bottom:4px}
+select,input[type=file]{padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;max-width:100%}
+button{cursor:pointer;border:0;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;background:var(--line);color:var(--ink)}
+.machine{background:linear-gradient(180deg,var(--green),#0b5a2a);border-radius:22px;padding:18px;border:4px solid var(--gold);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.reels{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;background:var(--reel);border-radius:14px;padding:14px;min-height:110px;align-items:center}
+.reel{width:clamp(44px,12vw,70px);height:clamp(70px,18vw,100px);background:#fff;color:#111;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:clamp(40px,10vw,64px);font-weight:800;font-variant-numeric:tabular-nums;box-shadow:inset 0 0 14px rgba(0,0,0,.35)}
+.reel.spin{filter:blur(1.2px);color:#555}
+.reel.done{background:var(--reelink);animation:pop .35s}
+.textdisp{color:var(--reelink);font-size:clamp(24px,6vw,44px);font-weight:800;text-align:center;word-break:break-word;padding:6px}
+@keyframes pop{50%{transform:scale(1.15)}}
+.winner{margin-top:14px;text-align:center;background:var(--reel);border-radius:14px;padding:14px;min-height:76px;color:var(--reelink)}
+.winner .n{font-size:clamp(26px,7vw,46px);font-weight:800;word-break:break-word}
+.winner .h{color:#c9b8ee;font-size:13px}
+.go{display:block;margin:16px auto 0;font-size:20px;padding:14px 40px;background:var(--gold);color:#2a1b00;border-radius:999px;box-shadow:0 4px 0 #b88700}
+.go:disabled{opacity:.5;cursor:not-allowed}
+ol{margin:8px 0 0;padding-left:22px}
+li{padding:3px 0}
+.mute{color:var(--mute);font-size:13px}
+.wrap{overflow-x:auto}
 </style>
 </head>
 <body>
 <main>
-<div class="hd">
-  <img alt="Capa do livro" src="capa.jpg">
-  <div class="kick">Sorteio · ANPET 2026</div>
-  <h1>Superfícies e interfaces de materiais na Engenharia Civil</h1>
-  <p class="sub">Jorge Lucas Júnior, Jorge Soares e Lucas Babadopulos</p>
-</div>
+<h1>🎰 Sorteador Jackpot</h1>
+<p class="sub">Importe sua planilha, gire os números e descubra o nome sorteado.</p>
 
 <div class="card">
-  <p style="margin:0">Concorra a um exemplar! Serão <b>5 livros por dia</b>, nos dias 27, 28 e 29/out.</p>
-  <a class="btn" id="go" href="#">Quero me inscrever</a>
-  <p class="fine">Seu nome e sua instituição aparecerão na lista pública de inscritos abaixo. O e-mail não é publicado e é usado apenas para avisar os ganhadores.</p>
+  <div class="row">
+    <div><label>1. Planilha (.xlsx, .xls ou .csv)</label><input type="file" id="file" accept=".xlsx,.xls,.csv"></div>
+    <button id="demo">Usar exemplo</button>
+  </div>
+  <div class="row" id="cfg" style="margin-top:12px;display:none">
+    <div><label>Coluna do número</label><select id="colNum"></select></div>
+    <div><label>Coluna do nome</label><select id="colName"></select></div>
+    <div><label><input type="checkbox" id="hdr" checked> 1ª linha é cabeçalho</label></div>
+    <div><label><input type="checkbox" id="rem" checked> Não repetir sorteados</label></div>
+  </div>
+  <p class="mute" id="info" style="margin:10px 0 0">Nenhuma planilha carregada.</p>
 </div>
 
-<div class="card">
-  <h2>Como funciona</h2>
-  <ul>
-    <li>Sorteio ao vivo no estande, com a tela à vista de todos.</li>
-    <li>O sorteio usa o gerador aleatório do navegador, e cada pessoa só pode ganhar uma vez.</li>
-    <li>Só entram no sorteio as inscrições feitas até o horário anunciado no estande.</li>
-    <li>Se o ganhador não retirar o livro em 10 minutos, sorteamos outro.</li>
-    <li>O código do site é aberto e pode ser conferido no GitHub.</li>
-  </ul>
+<div class="machine">
+  <div class="reels" id="reels"><div class="textdisp" style="color:#8a7bb0">Carregue uma planilha</div></div>
+  <div class="winner" id="winner"><div class="h">O sorteado aparece aqui</div></div>
+  <button class="go" id="go" disabled>🎲 SORTEAR</button>
 </div>
-<div class="card">
-  <h2>Inscritos (<span id="tot">–</span>)</h2>
-  <p class="meta" style="margin:0 0 8px">A lista atualiza sozinha a cada minuto.</p>
-  <div class="chips" id="lista"><span class="meta">Carregando…</span></div>
+
+<div class="card" style="margin-top:16px">
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <strong>Sorteados</strong><button id="clear">Limpar histórico</button>
+  </div>
+  <div class="wrap"><ol id="hist"></ol></div>
 </div>
 </main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-/* COLE AQUI o link do seu Google Forms (o link de "Enviar" do formulário) */
-const FORM_URL="https://docs.google.com/forms/d/e/1FAIpQLSe6wrvcQbH7dKnqZs77UPewfwG1EILaF3vv6hYVqpdLE9pQqg/viewform?usp=dialog";
-document.getElementById("go").href=FORM_URL;
+let rows=[],pool=[],spinning=false,history=[];
+const $=id=>document.getElementById(id);
+const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n};
 
-/* COLE AQUI o link da aba "Sorteio" publicada como CSV (o mesmo do painel) */
-const CSV_URL="COLE_AQUI_O_LINK_CSV";
-/* true = mostra "Maria S." em vez do nome completo */
-const ABREVIAR=false;
+function colName(i){let s='';i++;while(i>0){s=String.fromCharCode(65+(i-1)%26)+s;i=Math.floor((i-1)/26)}return s}
 
-const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function parseCSV(t){const r=[];let row=[],f="",q=false;
-  for(let i=0;i<t.length;i++){const c=t[i];
-    if(q){if(c=='"'){if(t[i+1]=='"'){f+='"';i++}else q=false}else f+=c}
-    else if(c=='"')q=true;
-    else if(c==','){row.push(f);f=""}
-    else if(c=='\n'||c=='\r'){if(c=='\r'&&t[i+1]=='\n')i++;row.push(f);r.push(row);row=[];f=""}
-    else f+=c}
-  if(f||row.length){row.push(f);r.push(row)}return r}
-const abrev=n=>{const p=n.trim().split(/\s+/);return p.length>1?p[0]+" "+p[p.length-1][0]+".":p[0]};
-async function carregar(){
-  try{
-    const res=await fetch(CSV_URL,{cache:"no-store"});if(!res.ok)throw 0;
-    const seen=new Set(),l=[];
-    parseCSV(await res.text()).slice(1).forEach(([n,i])=>{
-      n=(n||"").trim();if(!n)return;const k=n.toLowerCase().replace(/\s+/g," ");
-      if(seen.has(k))return;seen.add(k);
-      l.push((ABREVIAR?abrev(n):n)+(i&&i.trim()?" · "+i.trim():""));
-    });
-    document.getElementById("tot").textContent=l.length;
-    document.getElementById("lista").innerHTML=l.length?l.sort((a,b)=>a.localeCompare(b,"pt-BR")).map(x=>`<span class="chip">${esc(x)}</span>`).join(""):'<span class="meta">Ainda não há inscritos.</span>';
-  }catch(e){document.getElementById("lista").innerHTML='<span class="meta">Não foi possível carregar a lista agora.</span>'}
+function load(data){
+  rows=data.filter(r=>r&&r.some(c=>c!==undefined&&c!==''));
+  if(!rows.length){$('info').textContent='Planilha vazia.';return}
+  const first=rows[0];
+  $('hdr').checked=isNaN(Number(first[0]))&&first[0]!==undefined;
+  $('cfg').style.display='flex';
+  fillCols();rebuild();
 }
-if(CSV_URL.startsWith("http")){carregar();setInterval(carregar,60000)}
-else document.getElementById("lista").innerHTML='<span class="meta">Lista indisponível.</span>';
+function fillCols(){
+  const n=Math.max(...rows.slice(0,50).map(r=>r.length));
+  const h=$('hdr').checked?rows[0]:[];
+  let opts='';
+  for(let i=0;i<n;i++)opts+=`<option value="${i}">${colName(i)}${h[i]?' – '+String(h[i]).slice(0,20):''}</option>`;
+  $('colNum').innerHTML=opts;
+  $('colName').innerHTML='<option value="-1">(nenhuma)</option>'+opts;
+  $('colNum').value=0;$('colName').value=n>1?1:-1;
+}
+function rebuild(){
+  const ci=+$('colNum').value,cn=+$('colName').value;
+  const data=$('hdr').checked?rows.slice(1):rows;
+  const all=data.filter(r=>r[ci]!==undefined&&r[ci]!=='').map(r=>({key:String(r[ci]).trim(),name:cn>=0&&r[cn]!==undefined?String(r[cn]).trim():''}));
+  window.all=all;
+  pool=all.filter(e=>!history.some(h=>h.key===e.key&&h.name===e.name)||!$('rem').checked);
+  $('info').textContent=`${all.length} participantes carregados · ${pool.length} disponíveis para sorteio.`;
+  $('go').disabled=!pool.length;
+}
+$('hdr').onchange=()=>{fillCols();rebuild()};
+$('colNum').onchange=$('colName').onchange=$('rem').onchange=rebuild;
+
+$('file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      load(XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''}));
+    }catch(err){$('info').textContent='Não consegui ler esse arquivo.'}
+  };
+  r.readAsArrayBuffer(f);
+};
+$('demo').onclick=()=>{
+  const nomes=['Ana','Bruno','Carla','Diego','Elisa','Fábio','Gabi','Hugo','Iara','João','Karen','Lucas','Marta','Nando','Olívia'];
+  load([['Número','Nome'],...nomes.map((n,i)=>[String(i+1).padStart(3,'0'),n+' '+['Silva','Souza','Lima','Costa','Rocha'][i%5]])]);
+};
+
+function renderHist(){
+  $('hist').innerHTML=history.map(h=>`<li><b>${esc(h.key)}</b>${h.name?' – '+esc(h.name):''}</li>`).join('');
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+$('clear').onclick=()=>{history=[];renderHist();rebuild()};
+
+$('go').onclick=()=>{
+  if(spinning||!pool.length)return;
+  spinning=true;$('go').disabled=true;
+  const win=pool[rnd(pool.length)];
+  $('winner').innerHTML='<div class="h">Girando…</div>';
+  const maxLen=Math.max(...window.all.map(e=>e.key.length));
+  const box=$('reels');
+  if(maxLen<=8){
+    const chars=[...new Set(window.all.flatMap(e=>[...e.key]))];
+    const key=win.key.padStart(maxLen,' ');
+    box.innerHTML='';
+    const els=[...key].map(()=>{const d=document.createElement('div');d.className='reel spin';box.appendChild(d);return d});
+    const done=els.map(()=>false);
+    const iv=setInterval(()=>els.forEach((d,i)=>{if(!done[i])d.textContent=chars[rnd(chars.length)]}),55);
+    els.forEach((d,i)=>setTimeout(()=>{
+      done[i]=true;d.textContent=key[i]===' '?'':key[i];d.className='reel done';
+      if(i===els.length-1){clearInterval(iv);finish(win)}
+    },1500+i*700));
+  }else{
+    box.innerHTML='<div class="textdisp"></div>';
+    const t=box.firstChild;
+    const iv=setInterval(()=>t.textContent=window.all[rnd(window.all.length)].key,60);
+    setTimeout(()=>{clearInterval(iv);t.textContent=win.key;finish(win)},2800);
+  }
+};
+function finish(win){
+  history.push(win);renderHist();
+  $('winner').innerHTML=`<div class="h">🎉 Sorteado${win.name?'':' (sem nome)'}</div><div class="n">${esc(win.name||win.key)}</div>`+(win.name?`<div class="h">Número ${esc(win.key)}</div>`:'');
+  spinning=false;rebuild();
+}
 </script>
 </body>
 </html>
