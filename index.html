@@ -37,6 +37,7 @@ ol{margin:8px 0 0;padding-left:22px}
 li{padding:3px 0}
 .mute{color:var(--mute);font-size:13px}
 .wrap{overflow-x:auto}
+.chk label{display:inline-block;margin:0 12px 0 0;color:var(--ink);font-size:14px}
 </style>
 </head>
 <body>
@@ -54,11 +55,13 @@ li{padding:3px 0}
     <div><label>Coluna do número</label><select id="colNum"></select></div>
     <div><label>Coluna do nome</label><select id="colName"></select></div>
     <div><label>Coluna do e-mail</label><select id="colEmail"></select></div>
-    <div><label><input type="checkbox" id="dedup" checked> Ignorar inscrições repetidas (mesmo e-mail)</label></div>
+    <div><label>Coluna do telefone</label><select id="colFone"></select></div>
+    <div class="chk"><label style="color:var(--mute);font-size:13px;display:block;margin-bottom:4px">Ignorar inscrição repetida se bater em:</label><label><input type="checkbox" id="dEmail" checked> e-mail</label><label><input type="checkbox" id="dFone" checked> telefone</label><label><input type="checkbox" id="dNome" checked> nome</label></div>
     <div><label><input type="checkbox" id="hdr" checked> 1ª linha é cabeçalho</label></div>
     <div><label><input type="checkbox" id="rem" checked> Não repetir sorteados</label></div>
   </div>
   <p class="mute" id="info" style="margin:10px 0 0">Nenhuma planilha carregada.</p>
+  <details id="dups" style="display:none;margin-top:8px"><summary class="mute" id="dupSum" style="cursor:pointer"></summary><ol id="dupList" class="mute"></ol></details>
 </div>
 
 <div class="machine">
@@ -99,28 +102,44 @@ function fillCols(){
   $('colNum').innerHTML=opts;
   $('colName').innerHTML='<option value="-1">(nenhuma)</option>'+opts;
   $('colEmail').innerHTML='<option value="-1">(nenhuma)</option>'+opts;
+  $('colFone').innerHTML='<option value="-1">(nenhuma)</option>'+opts;
   const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-  let ci=0,cn=n>1?1:-1,ce=-1;
-  if($('hdr').checked){const H=h.map(norm);const a=H.findIndex(x=>x.includes('inscri'));const b=H.findIndex(x=>x.includes('nome'));const c=H.findIndex(x=>x.includes('mail'));if(a>=0)ci=a;if(b>=0)cn=b;if(c>=0)ce=c;}
-  $('colNum').value=ci;$('colName').value=cn;$('colEmail').value=ce;
+  let ci=0,cn=n>1?1:-1,ce=-1,cf=-1;
+  if($('hdr').checked){const H=h.map(norm);const a=H.findIndex(x=>x.includes('inscri'));const b=H.findIndex(x=>x.includes('nome'));const c=H.findIndex(x=>x.includes('mail'));if(a>=0)ci=a;if(b>=0)cn=b;if(c>=0)ce=c;const d=H.findIndex(x=>x.includes('fone')||x.includes('celular'));if(d>=0)cf=d;}
+  $('colNum').value=ci;$('colName').value=cn;$('colEmail').value=ce;$('colFone').value=cf;
 }
 function rebuild(){
-  const ci=+$('colNum').value,cn=+$('colName').value,ce=+$('colEmail').value;
+  const ci=+$('colNum').value,cn=+$('colName').value,ce=+$('colEmail').value,cf=+$('colFone').value;
   const data=$('hdr').checked?rows.slice(1):rows;
   const nz=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
-  let all=data.filter(r=>r[ci]!==undefined&&r[ci]!=='').map(r=>({key:String(r[ci]).trim(),name:cn>=0&&r[cn]!==undefined?String(r[cn]).trim():'',mail:ce>=0&&r[ce]!==undefined?nz(r[ce]):''}));
-  let dup=0;
-  if($('dedup').checked){
-    const seen=new Set();
-    all=all.filter(e=>{const k=e.mail||(e.name?'n:'+nz(e.name):'');if(!k)return true;if(seen.has(k)){dup++;return false}seen.add(k);return true});
-  }
-  window.all=all;
+  const fz=x=>{let d=String(x||'').replace(/\D/g,'');if(d.length>=12&&d.startsWith('55'))d=d.slice(2);return d.length>=9?d.slice(-9):''};
+  const nameOk=k=>k.split(' ').filter(Boolean).length>=2;
+  const g=(r,i)=>i>=0&&r[i]!==undefined?r[i]:'';
+  let all=data.filter(r=>r[ci]!==undefined&&r[ci]!=='').map(r=>({key:String(r[ci]).trim(),name:String(g(r,cn)).trim(),mail:nz(g(r,ce)),fone:fz(g(r,cf)),nk:nz(g(r,cn))}));
+  const out=[],ign=[],sm=new Map(),sf=new Map(),sn=new Map();
+  const useM=$('dEmail').checked,useF=$('dFone').checked,useN=$('dNome').checked;
+  all.forEach(e=>{
+    let orig=null,why='';
+    if(useM&&e.mail&&sm.has(e.mail)){orig=sm.get(e.mail);why='e-mail'}
+    else if(useF&&e.fone&&sf.has(e.fone)){orig=sf.get(e.fone);why='telefone'}
+    else if(useN&&nameOk(e.nk)&&sn.has(e.nk)){orig=sn.get(e.nk);why='nome'}
+    const root=orig||e;
+    if(e.mail&&!sm.has(e.mail))sm.set(e.mail,root);
+    if(e.fone&&!sf.has(e.fone))sf.set(e.fone,root);
+    if(nameOk(e.nk)&&!sn.has(e.nk))sn.set(e.nk,root);
+    if(orig)ign.push({e,orig,why});else out.push(e);
+  });
+  all=out;window.all=all;
   pool=all.filter(e=>!history.some(h=>h.key===e.key&&h.name===e.name)||!$('rem').checked);
-  $('info').textContent=`${all.length} participantes válidos`+(dup?` · ${dup} inscrição(ões) repetida(s) ignorada(s)`:'')+` · ${pool.length} disponíveis para sorteio.`;
+  $('info').textContent=`${all.length} participantes válidos`+(ign.length?` · ${ign.length} repetido(s) ignorado(s)`:'')+` · ${pool.length} disponíveis para sorteio.`;
+  const lab=e=>(e.name||'(sem nome)')+' (nº '+e.key+')';
+  $('dups').style.display=ign.length?'block':'none';
+  $('dupSum').textContent=`Ver os ${ign.length} repetido(s) ignorado(s)`;
+  $('dupList').innerHTML=ign.map(x=>`<li>${esc(lab(x.e))} – igual a ${esc(lab(x.orig))} pelo ${x.why}</li>`).join('');
   $('go').disabled=!pool.length;
 }
 $('hdr').onchange=()=>{fillCols();rebuild()};
-$('colNum').onchange=$('colName').onchange=$('colEmail').onchange=$('dedup').onchange=$('rem').onchange=rebuild;
+$('colNum').onchange=$('colName').onchange=$('colEmail').onchange=$('colFone').onchange=$('dEmail').onchange=$('dFone').onchange=$('dNome').onchange=$('rem').onchange=rebuild;
 
 $('file').onchange=e=>{
   const f=e.target.files[0];if(!f)return;
@@ -136,7 +155,12 @@ $('file').onchange=e=>{
 };
 $('demo').onclick=()=>{
   const nomes=['Ana','Bruno','Carla','Diego','Elisa','Fábio','Gabi','Hugo','Iara','João','Karen','Lucas','Marta','Nando','Olívia'];
-  load([['Número','Nome'],...nomes.map((n,i)=>[String(i+1).padStart(3,'0'),n+' '+['Silva','Souza','Lima','Costa','Rocha'][i%5]])]);
+  const sob=['Silva','Souza','Lima','Costa','Rocha'];
+  const d=[['Número','Nome completo','E-mail','Telefone']];
+  nomes.forEach((n,i)=>d.push([String(i+1).padStart(3,'0'),n+' '+sob[i%5],n.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()+'@exemplo.com','(85) 9'+String(90000000+i*1111)]));
+  d.push(['016','Ana Silva','ana.novo@exemplo.com','(85) 99000-0000']);
+  d.push(['017','Bruno Outro','bruno@exemplo.com','(85) 98888-0000']);
+  load(d);
 };
 
 function renderHist(){
