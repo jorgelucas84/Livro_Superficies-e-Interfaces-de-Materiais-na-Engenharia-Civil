@@ -53,6 +53,8 @@ li{padding:3px 0}
   <div class="row" id="cfg" style="margin-top:12px;display:none">
     <div><label>Coluna do número</label><select id="colNum"></select></div>
     <div><label>Coluna do nome</label><select id="colName"></select></div>
+    <div><label>Coluna do e-mail</label><select id="colEmail"></select></div>
+    <div><label><input type="checkbox" id="dedup" checked> Ignorar inscrições repetidas (mesmo e-mail)</label></div>
     <div><label><input type="checkbox" id="hdr" checked> 1ª linha é cabeçalho</label></div>
     <div><label><input type="checkbox" id="rem" checked> Não repetir sorteados</label></div>
   </div>
@@ -96,22 +98,29 @@ function fillCols(){
   for(let i=0;i<n;i++)opts+=`<option value="${i}">${colName(i)}${h[i]?' – '+String(h[i]).slice(0,20):''}</option>`;
   $('colNum').innerHTML=opts;
   $('colName').innerHTML='<option value="-1">(nenhuma)</option>'+opts;
+  $('colEmail').innerHTML='<option value="-1">(nenhuma)</option>'+opts;
   const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-  let ci=0,cn=n>1?1:-1;
-  if($('hdr').checked){const H=h.map(norm);const a=H.findIndex(x=>x.includes('inscri'));const b=H.findIndex(x=>x.includes('nome'));if(a>=0)ci=a;if(b>=0)cn=b;}
-  $('colNum').value=ci;$('colName').value=cn;
+  let ci=0,cn=n>1?1:-1,ce=-1;
+  if($('hdr').checked){const H=h.map(norm);const a=H.findIndex(x=>x.includes('inscri'));const b=H.findIndex(x=>x.includes('nome'));const c=H.findIndex(x=>x.includes('mail'));if(a>=0)ci=a;if(b>=0)cn=b;if(c>=0)ce=c;}
+  $('colNum').value=ci;$('colName').value=cn;$('colEmail').value=ce;
 }
 function rebuild(){
-  const ci=+$('colNum').value,cn=+$('colName').value;
+  const ci=+$('colNum').value,cn=+$('colName').value,ce=+$('colEmail').value;
   const data=$('hdr').checked?rows.slice(1):rows;
-  const all=data.filter(r=>r[ci]!==undefined&&r[ci]!=='').map(r=>({key:String(r[ci]).trim(),name:cn>=0&&r[cn]!==undefined?String(r[cn]).trim():''}));
+  const nz=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+  let all=data.filter(r=>r[ci]!==undefined&&r[ci]!=='').map(r=>({key:String(r[ci]).trim(),name:cn>=0&&r[cn]!==undefined?String(r[cn]).trim():'',mail:ce>=0&&r[ce]!==undefined?nz(r[ce]):''}));
+  let dup=0;
+  if($('dedup').checked){
+    const seen=new Set();
+    all=all.filter(e=>{const k=e.mail||(e.name?'n:'+nz(e.name):'');if(!k)return true;if(seen.has(k)){dup++;return false}seen.add(k);return true});
+  }
   window.all=all;
   pool=all.filter(e=>!history.some(h=>h.key===e.key&&h.name===e.name)||!$('rem').checked);
-  $('info').textContent=`${all.length} participantes carregados · ${pool.length} disponíveis para sorteio.`;
+  $('info').textContent=`${all.length} participantes válidos`+(dup?` · ${dup} inscrição(ões) repetida(s) ignorada(s)`:'')+` · ${pool.length} disponíveis para sorteio.`;
   $('go').disabled=!pool.length;
 }
 $('hdr').onchange=()=>{fillCols();rebuild()};
-$('colNum').onchange=$('colName').onchange=$('rem').onchange=rebuild;
+$('colNum').onchange=$('colName').onchange=$('colEmail').onchange=$('dedup').onchange=$('rem').onchange=rebuild;
 
 $('file').onchange=e=>{
   const f=e.target.files[0];if(!f)return;
