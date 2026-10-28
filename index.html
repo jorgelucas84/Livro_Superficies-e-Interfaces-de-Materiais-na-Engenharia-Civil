@@ -74,6 +74,7 @@ li{padding:3px 0}
     <div><label>1. Planilha (.xlsx, .xls ou .csv)</label><input type="file" id="file" accept=".xlsx,.xls,.csv"></div>
     <button id="demo">Usar exemplo</button>
   </div>
+  <div style="margin-top:12px"><label>Já sorteados antes (nº da inscrição, separados por vírgula) – estes não concorrem</label><input type="text" id="prev" value="5, 23, 16, 20, 31" placeholder="ex.: 5, 23, 16" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:14px"></div>
   <div class="row" id="cfg" style="margin-top:12px;display:none">
     <div><label>Coluna do número</label><select id="colNum"></select></div>
     <div><label>Coluna do nome</label><select id="colName"></select></div>
@@ -100,7 +101,7 @@ li{padding:3px 0}
 
 <div class="card" style="margin-top:16px">
   <div class="row" style="justify-content:space-between;align-items:center">
-    <strong>Sorteados</strong><button id="clear">Limpar histórico</button>
+    <strong>Sorteados</strong><span><button id="copy">Copiar lista</button> <button id="clear">Limpar histórico</button></span>
   </div>
   <div class="wrap"><ol id="hist"></ol></div>
 </div>
@@ -158,8 +159,10 @@ function rebuild(){
     if(orig)ign.push({e,orig,why});else out.push(e);
   });
   all=out;window.all=all;
-  pool=all.filter(e=>!history.some(h=>h.key===e.key&&h.name===e.name)||!$('rem').checked);
-  $('info').textContent=`${all.length} participantes válidos`+(ign.length?` · ${ign.length} repetido(s) ignorado(s)`:'')+` · ${pool.length} disponíveis para sorteio.`;
+  const ex=exSet();
+  pool=all.filter(e=>!ex.has(nkey(e.key))&&(!history.some(h=>h.key===e.key&&h.name===e.name)||!$('rem').checked));
+  const exc=all.filter(e=>ex.has(nkey(e.key))).length;
+  $('info').textContent=`${all.length} participantes válidos`+(ign.length?` · ${ign.length} repetido(s) ignorado(s)`:'')+(exc?` · ${exc} já sorteado(s), fora do sorteio`:'')+` · ${pool.length} disponíveis para sorteio.`;
   const lab=e=>(e.name||'(sem nome)')+' (nº '+e.key+')';
   $('dups').style.display=ign.length?'block':'none';
   $('dupSum').textContent=`Ver os ${ign.length} repetido(s) ignorado(s)`;
@@ -191,6 +194,17 @@ $('demo').onclick=()=>{
   load(d);
 };
 
+function nkey(k){k=String(k).trim();return /^\d+$/.test(k)?String(+k):k.toLowerCase()}
+function exSet(){return new Set($('prev').value.split(/[,;\s]+/).filter(Boolean).map(nkey))}
+function savePrev(){try{localStorage.setItem('prev',$('prev').value)}catch(e){}}
+try{const v=localStorage.getItem('prev');if(v!==null)$('prev').value=v}catch(e){}
+$('prev').oninput=()=>{savePrev();if(rows.length)rebuild()};
+$('copy').onclick=()=>{
+  const ks=[...new Set([...$('prev').value.split(/[,;\s]+/).filter(Boolean),...history.map(h=>h.key)].map(nkey))];
+  const txt=ks.join(', ');
+  const ok=()=>{$('copy').textContent='Copiado!';setTimeout(()=>$('copy').textContent='Copiar lista',1500)};
+  try{navigator.clipboard.writeText(txt).then(ok,()=>{$('prev').value=txt;savePrev();ok()})}catch(e){$('prev').value=txt;savePrev();ok()}
+};
 function renderHist(){
   $('hist').innerHTML=history.map(h=>`<li><b>${esc(h.key)}</b>${h.name?' – '+esc(h.name):''}</li>`).join('');
 }
@@ -267,6 +281,7 @@ $('go').onclick=()=>{
 };
 function finish(win){
   history.push(win);renderHist();
+  if($('rem').checked&&!exSet().has(nkey(win.key))){const p=$('prev');p.value=(p.value.trim()?p.value.trim()+', ':'')+win.key;savePrev()}
   $('winner').innerHTML=`<div class="h">🎉 JACKPOT!${win.name?'':' (sem nome)'}</div><div class="n">${esc(win.name||win.key)}</div>`+(win.name?`<div class="h">Número ${esc(win.key)}</div>`:'');
   const w=$('winner');w.classList.remove('pulse');void w.offsetWidth;w.classList.add('pulse');
   const m=$('machine');m.classList.add('win');setTimeout(()=>m.classList.remove('win'),3200);
