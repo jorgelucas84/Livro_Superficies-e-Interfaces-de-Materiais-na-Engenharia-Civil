@@ -75,6 +75,28 @@ li{padding:3px 0}
     <button id="demo">Usar exemplo</button>
   </div>
   <div style="margin-top:12px"><label>Já sorteados antes (nº da inscrição, separados por vírgula) – estes não concorrem</label><input type="text" id="prev" value="5, 23, 16, 20, 31" placeholder="ex.: 5, 23, 16" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:14px"></div>
+  <div id="uniBox" style="display:none;margin-top:12px">
+    <div class="row">
+      <div><label>Coluna da instituição</label><select id="colInst"></select></div>
+      <div class="chk"><label><input type="checkbox" id="uniOn" checked> Evitar repetir a mesma universidade no mesmo dia</label><label>(só se houver pelo menos <input type="number" id="uniMin" value="5" min="2" style="width:56px;padding:4px;border-radius:6px;border:1px solid var(--line)"> universidades)</label></div>
+    </div>
+    <details style="margin-top:8px"><summary class="mute" id="uniSum" style="cursor:pointer">Agrupamento das instituições</summary>
+      <p class="mute" style="margin:6px 0">Uma regra por linha: <b>Nome = trecho1, trecho2</b>. Vale a primeira regra que combinar (sem acento e sem diferenciar maiúsculas).</p>
+      <textarea id="rules" rows="9" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:13px;font-family:monospace">IFCE = ifce, instituto federal do ceara
+UFC = ufc, federal do ceara
+USP = usp, universidade de sao paulo, epusp, eesc
+UFPE = ufpe, federal de pernambuco
+Unifesspa = unifesspa, sul e sudeste do para
+UFSM = ufsm, federal de santa maria
+UFSC = ufsc, federal de santa catarina
+UnB = unb, universidade de brasilia
+UFERSA = ufersa
+CEFET-MG = cefet, tecnologia de minas gerais
+ETS Montréal = etsmtl, ecole de technologie
+TU Braunschweig = braunschweig</textarea>
+      <div id="uniList" class="mute"></div>
+    </details>
+  </div>
   <div class="row" id="cfg" style="margin-top:12px;display:none">
     <div><label>Coluna do número</label><select id="colNum"></select></div>
     <div><label>Coluna do nome</label><select id="colName"></select></div>
@@ -120,7 +142,7 @@ function load(data){
   if(!rows.length){$('info').textContent='Planilha vazia.';return}
   const first=rows[0];
   $('hdr').checked=isNaN(Number(first[0]))&&first[0]!==undefined;
-  $('cfg').style.display='flex';
+  $('cfg').style.display='flex';$('uniBox').style.display='block';
   fillCols();rebuild();idle();
 }
 function fillCols(){
@@ -132,19 +154,21 @@ function fillCols(){
   $('colName').innerHTML='<option value="-1">(nenhuma)</option>'+opts;
   $('colEmail').innerHTML='<option value="-1">(nenhuma)</option>'+opts;
   $('colFone').innerHTML='<option value="-1">(nenhuma)</option>'+opts;
+  $('colInst').innerHTML='<option value="-1">(nenhuma)</option>'+opts;
   const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-  let ci=0,cn=n>1?1:-1,ce=-1,cf=-1;
-  if($('hdr').checked){const H=h.map(norm);const a=H.findIndex(x=>x.includes('inscri'));const b=H.findIndex(x=>x.includes('nome'));const c=H.findIndex(x=>x.includes('mail'));if(a>=0)ci=a;if(b>=0)cn=b;if(c>=0)ce=c;const d=H.findIndex(x=>x.includes('fone')||x.includes('celular'));if(d>=0)cf=d;}
-  $('colNum').value=ci;$('colName').value=cn;$('colEmail').value=ce;$('colFone').value=cf;
+  let ci=0,cn=n>1?1:-1,ce=-1,cf=-1,cs=-1;
+  if($('hdr').checked){const H=h.map(norm);const a=H.findIndex(x=>x.includes('inscri'));const b=H.findIndex(x=>x.includes('nome'));const c=H.findIndex(x=>x.includes('mail'));if(a>=0)ci=a;if(b>=0)cn=b;if(c>=0)ce=c;const d=H.findIndex(x=>x.includes('fone')||x.includes('celular'));if(d>=0)cf=d;const u=H.findIndex(x=>x.includes('instit')||x.includes('universid'));if(u>=0)cs=u;}
+  $('colNum').value=ci;$('colName').value=cn;$('colEmail').value=ce;$('colFone').value=cf;$('colInst').value=cs;
 }
 function rebuild(){
-  const ci=+$('colNum').value,cn=+$('colName').value,ce=+$('colEmail').value,cf=+$('colFone').value;
+  const ci=+$('colNum').value,cn=+$('colName').value,ce=+$('colEmail').value,cf=+$('colFone').value,cs=+$('colInst').value;
+  const rules=parseRules();
   const data=$('hdr').checked?rows.slice(1):rows;
   const nz=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
   const fz=x=>{let d=String(x||'').replace(/\D/g,'');if(d.length>=12&&d.startsWith('55'))d=d.slice(2);return d.length>=9?d.slice(-9):''};
   const nameOk=k=>k.split(' ').filter(Boolean).length>=2;
   const g=(r,i)=>i>=0&&r[i]!==undefined?r[i]:'';
-  let all=data.filter(r=>r[ci]!==undefined&&r[ci]!=='').map(r=>({key:String(r[ci]).trim(),name:String(g(r,cn)).trim(),mail:nz(g(r,ce)),fone:fz(g(r,cf)),nk:nz(g(r,cn))}));
+  let all=data.filter(r=>r[ci]!==undefined&&r[ci]!=='').map(r=>({key:String(r[ci]).trim(),name:String(g(r,cn)).trim(),mail:nz(g(r,ce)),fone:fz(g(r,cf)),nk:nz(g(r,cn)),...(()=>{const q=instGroup(g(r,cs),rules);return {ik:q.key,il:q.label}})()}));
   const out=[],ign=[],sm=new Map(),sf=new Map(),sn=new Map();
   const useM=$('dEmail').checked,useF=$('dFone').checked,useN=$('dNome').checked;
   all.forEach(e=>{
@@ -162,7 +186,19 @@ function rebuild(){
   const ex=exSet();
   pool=all.filter(e=>!ex.has(nkey(e.key))&&(!history.some(h=>h.key===e.key&&h.name===e.name)||!$('rem').checked));
   const exc=all.filter(e=>ex.has(nkey(e.key))).length;
-  $('info').textContent=`${all.length} participantes válidos`+(ign.length?` · ${ign.length} repetido(s) ignorado(s)`:'')+(exc?` · ${exc} já sorteado(s), fora do sorteio`:'')+` · ${pool.length} disponíveis para sorteio.`;
+  let uniNote='';
+  const allU=new Set(all.map(e=>e.ik).filter(Boolean));
+  if($('uniOn').checked&&cs>=0){
+    if(allU.size>=(+$('uniMin').value||5)){
+      const used=new Set(dayU);
+      const free=pool.filter(e=>!e.ik||!used.has(e.ik));
+      if(free.length)pool=free;else if(pool.length)uniNote=' · todas as universidades restantes já ganharam hoje, repetição liberada';
+    }else uniNote=` · só ${allU.size} universidade(s): repetição liberada`;
+  }
+  const cnt=new Map();all.forEach(e=>{if(e.ik){const o=cnt.get(e.ik)||{l:e.il,n:0};o.n++;cnt.set(e.ik,o)}});
+  $('uniList').innerHTML=cs>=0?'<ul style="margin:6px 0 0;padding-left:18px">'+[...cnt.entries()].sort((a,b)=>b[1].n-a[1].n).map(([k,o])=>`<li>${esc(o.l)} – ${o.n} inscrito(s)${dayU.includes(k)?' ✅ já sorteada hoje':''}</li>`).join('')+'</ul>':'';
+  $('uniSum').textContent=cs>=0?`Agrupamento das instituições (${cnt.size} detectadas)`:'Agrupamento das instituições';
+  $('info').textContent=`${all.length} participantes válidos`+(ign.length?` · ${ign.length} repetido(s) ignorado(s)`:'')+(exc?` · ${exc} já sorteado(s), fora do sorteio`:'')+` · ${pool.length} disponíveis para sorteio`+uniNote+'.';
   const lab=e=>(e.name||'(sem nome)')+' (nº '+e.key+')';
   $('dups').style.display=ign.length?'block':'none';
   $('dupSum').textContent=`Ver os ${ign.length} repetido(s) ignorado(s)`;
@@ -170,7 +206,7 @@ function rebuild(){
   $('go').disabled=!pool.length;
 }
 $('hdr').onchange=()=>{fillCols();rebuild()};
-$('colNum').onchange=$('colName').onchange=$('colEmail').onchange=$('colFone').onchange=$('dEmail').onchange=$('dFone').onchange=$('dNome').onchange=$('rem').onchange=rebuild;
+$('colNum').onchange=$('colName').onchange=$('colEmail').onchange=$('colFone').onchange=$('colInst').onchange=$('uniOn').onchange=$('uniMin').oninput=$('dEmail').onchange=$('dFone').onchange=$('dNome').onchange=$('rem').onchange=rebuild;
 
 $('file').onchange=e=>{
   const f=e.target.files[0];if(!f)return;
@@ -187,13 +223,27 @@ $('file').onchange=e=>{
 $('demo').onclick=()=>{
   const nomes=['Ana','Bruno','Carla','Diego','Elisa','Fábio','Gabi','Hugo','Iara','João','Karen','Lucas','Marta','Nando','Olívia'];
   const sob=['Silva','Souza','Lima','Costa','Rocha'];
-  const d=[['Número','Nome completo','E-mail','Telefone']];
-  nomes.forEach((n,i)=>d.push([String(i+1).padStart(3,'0'),n+' '+sob[i%5],n.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()+'@exemplo.com','(85) 9'+String(90000000+i*1111)]));
-  d.push(['016','Ana Silva','ana.novo@exemplo.com','(85) 99000-0000']);
-  d.push(['017','Bruno Outro','bruno@exemplo.com','(85) 98888-0000']);
+  const d=[['Número','Nome completo','E-mail','Telefone','Instituição']];
+  nomes.forEach((n,i)=>d.push([String(i+1).padStart(3,'0'),n+' '+sob[i%5],n.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()+'@exemplo.com','(85) 9'+String(90000000+i*1111),['UFC','USP','UFPE','Unifesspa','UFSM'][i%5]]));
+  d.push(['016','Ana Silva','ana.novo@exemplo.com','(85) 99000-0000','UFC']);
+  d.push(['017','Bruno Outro','bruno@exemplo.com','(85) 98888-0000','USP']);
   load(d);
 };
 
+function ng(x){return String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+function parseRules(){return $('rules').value.split('\n').map(l=>{const i=l.indexOf('=');if(i<0)return null;const label=l.slice(0,i).trim();const toks=l.slice(i+1).split(',').map(ng).filter(Boolean);return label&&toks.length?{label,toks}:null}).filter(Boolean)}
+function instGroup(text,rules){
+  const t=ng(text);if(!t)return {key:'',label:''};
+  const p=' '+t+' ';
+  for(const r of rules)for(const k of r.toks)if(p.includes(' '+k+' '))return {key:'r:'+ng(r.label),label:r.label};
+  return {key:'t:'+t,label:String(text).trim()};
+}
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+let dayU=[];
+try{const o=JSON.parse(localStorage.getItem('dayU')||'null');if(o&&o.d===todayStr())dayU=o.u||[]}catch(e){}
+function saveDayU(){try{localStorage.setItem('dayU',JSON.stringify({d:todayStr(),u:dayU}))}catch(e){}}
+try{const v=localStorage.getItem('rules');if(v)$('rules').value=v}catch(e){}
+$('rules').oninput=()=>{try{localStorage.setItem('rules',$('rules').value)}catch(e){};if(rows.length)rebuild()};
 function nkey(k){k=String(k).trim();return /^\d+$/.test(k)?String(+k):k.toLowerCase()}
 function exSet(){return new Set($('prev').value.split(/[,;\s]+/).filter(Boolean).map(nkey))}
 function savePrev(){try{localStorage.setItem('prev',$('prev').value)}catch(e){}}
@@ -206,10 +256,10 @@ $('copy').onclick=()=>{
   try{navigator.clipboard.writeText(txt).then(ok,()=>{$('prev').value=txt;savePrev();ok()})}catch(e){$('prev').value=txt;savePrev();ok()}
 };
 function renderHist(){
-  $('hist').innerHTML=history.map(h=>`<li><b>${esc(h.key)}</b>${h.name?' – '+esc(h.name):''}</li>`).join('');
+  $('hist').innerHTML=history.map(h=>`<li><b>${esc(h.key)}</b>${h.name?' – '+esc(h.name):''}${h.il?' <span class="mute">('+esc(h.il)+')</span>':''}</li>`).join('');
 }
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-$('clear').onclick=()=>{history=[];renderHist();rebuild()};
+$('clear').onclick=()=>{history=[];dayU=[];saveDayU();renderHist();if(rows.length)rebuild()};
 
 let audio=null,sound=true;
 function ac(){if(!sound)return null;try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume();return audio}catch(e){return null}}
@@ -281,8 +331,9 @@ $('go').onclick=()=>{
 };
 function finish(win){
   history.push(win);renderHist();
+  if(win.ik&&!dayU.includes(win.ik)){dayU.push(win.ik);saveDayU()}
   if($('rem').checked&&!exSet().has(nkey(win.key))){const p=$('prev');p.value=(p.value.trim()?p.value.trim()+', ':'')+win.key;savePrev()}
-  $('winner').innerHTML=`<div class="h">🎉 JACKPOT!${win.name?'':' (sem nome)'}</div><div class="n">${esc(win.name||win.key)}</div>`+(win.name?`<div class="h">Número ${esc(win.key)}</div>`:'');
+  $('winner').innerHTML=`<div class="h">🎉 JACKPOT!${win.name?'':' (sem nome)'}</div><div class="n">${esc(win.name||win.key)}</div>`+(win.name?`<div class="h">Número ${esc(win.key)}</div>`:'')+(win.il?`<div class="h">${esc(win.il)}</div>`:'');
   const w=$('winner');w.classList.remove('pulse');void w.offsetWidth;w.classList.add('pulse');
   const m=$('machine');m.classList.add('win');setTimeout(()=>m.classList.remove('win'),3200);
   confetti();fanfare();
